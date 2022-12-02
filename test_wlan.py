@@ -1,3 +1,5 @@
+# Version 2022-12-02
+# Timezone gives correct date
 import ujson
 import ntptime
 import network
@@ -48,8 +50,8 @@ def connect():
 def clock():
     gc.collect()
 
-    days = (' Montag', 'Dienstag', ' Mittwoch', 'Donnerstag', ' Freitag', ' Samstag',
-            ' Sonntag')
+    days = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag',
+            'Sonntag')
     months = ('Jan', 'Feb', 'Maerz', 'April', 'Mai', 'Juni', 'Juli',
               'Aug', 'Sept', 'Okt', 'Nov', 'Dez')
     
@@ -87,11 +89,37 @@ def clock():
             seconds = 6000
 
         t = utime.localtime()
+        time = t[3] + timeoffset
+        dateoffset = time // 24
+        time %= 24
+        date = t[2] + dateoffset
+        month = t[1]
+        year = t[0]
+        weekday = days[(t[6] + dateoffset) % 7]
+        
+        end_of_the_month = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+        if year % 4 == 0 and year % 100 != 0: # leap year
+            end_of_the_month = (31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+        
+        if date == 0:
+            month -= 1
+            date = end_of_the_month[month - 1]
+            if month == 0:
+                year -= 1
+                month = 12
+        
+        if date > end_of_the_month[month - 1]:
+            month += 1
+            date = 1
+            if month > 12:
+                year += 1
+                month = 1
+        
 #        LCD.fill_rect(100, 270, 200, 30, LCD.RED)
-        LCD.text(f'{(t[3]+timeoffset) % 24:02d}:{t[4]:02d}:{t[5]:02d} Uhr', 100, 270, LCD.BLACK)
-        LCD.text(f'{days[t[6]]} {t[2]}. {months[t[1] - 1]} {t[0]}', 100, 290, LCD.BLUE)
+        LCD.text(f'{time:02d}:{t[4]:02d}:{t[5]:02d} Uhr', 100, 270, LCD.BLACK)
+        LCD.text(f'{weekday} {date}. {months[month - 1]} {year}', 100, 290, LCD.BLUE)
         seconds -= 1
-        utime.sleep_ms(1000)
+        utime.sleep_ms(900)
         
 LCD = display.LCD_3inch5()
 LCD.fill_rect(0, 0, LCD.width, LCD.height, LCD.YELLOW)
